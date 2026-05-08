@@ -1,0 +1,96 @@
+name: Harden Runner Security Test
+
+on:
+  workflow_dispatch:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  security-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Harden Runner
+        uses: step-security/harden-runner@v2
+        with:
+          egress-policy: block
+          allowed-endpoints: |
+            github.com:443
+            api.github.com:443
+            raw.githubusercontent.com:443
+            codeload.github.com:443
+            objects.githubusercontent.com:443
+            githubusercontent.com:443
+            *.githubusercontent.com:443
+
+      - name: Basic Commands
+        run: |
+          echo "Running basic commands"
+          whoami
+          pwd
+          hostname
+
+      - name: Allowed Endpoint Test
+        continue-on-error: true
+        run: |
+          echo "Testing allowed GitHub endpoints"
+
+          echo "github.com"
+          curl -I https://github.com
+
+          echo "api.github.com"
+          curl -I https://api.github.com
+
+          echo "raw.githubusercontent.com"
+          curl -I https://raw.githubusercontent.com
+
+      - name: Blocked Endpoint Test
+        continue-on-error: true
+        run: |
+          echo "Testing blocked endpoints"
+      
+          echo "Pastebin"
+          curl -v --connect-timeout 10 https://pastebin.com || true
+      
+          echo "Discord"
+          curl -v --connect-timeout 10 https://discord.com || true
+      
+          echo "Google"
+          curl -v --connect-timeout 10 https://google.com || true
+      
+          echo "Example"
+          curl -v --connect-timeout 10 https://example.com || true
+
+      - name: External Script Simulation
+        continue-on-error: true
+        run: |
+          echo "Downloading external file from allowed GitHub raw content"
+
+          curl -O https://raw.githubusercontent.com/github/gitignore/main/Python.gitignore
+
+          ls -la
+
+      - name: Dynamic Execution
+        continue-on-error: true
+        run: |
+          echo "echo hacked" > test.sh
+          chmod +x test.sh
+          ./test.sh
+
+      - name: Environment Inspection
+        continue-on-error: true
+        run: |
+          echo "Environment variables"
+          env | head
+
+          echo "Running processes"
+          ps aux | head
+
+      - name: Finish
+        run: echo "Done"
